@@ -5,7 +5,6 @@ import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [svelte(), cssInjectedByJsPlugin()],
-
   build: {
     rollupOptions: {
       output: {

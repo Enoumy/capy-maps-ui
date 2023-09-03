@@ -62,7 +62,6 @@
     last_refreshed = new Date();
   }
 
-  poll();
   // TODO: Use supabase's realtime thing to listen for changes an only poll when changes exist.
   setInterval(async () => {
     await poll();
@@ -230,7 +229,7 @@
 
   .stations-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(25rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
     gap: 1rem;
     width: 80%;
   }
