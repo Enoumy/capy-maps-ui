@@ -63,13 +63,10 @@
   }
 
   poll();
+  // TODO: Use supabase's realtime thing to listen for changes an only poll when changes exist.
   setInterval(async () => {
     await poll();
   }, 30000);
-
-  setInterval(() => {
-    fetch(station);
-  }, 1000);
 
   interface Station {
     station: string;
