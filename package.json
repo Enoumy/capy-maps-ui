@@ -19,6 +19,7 @@
     "vite": "^4.4.5"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.33.1"
+    "@supabase/supabase-js": "^2.33.1",
+    "vite-plugin-css-injected-by-js": "^3.3.0"
   }
 }
