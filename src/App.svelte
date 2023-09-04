@@ -8,6 +8,7 @@
   const project_url = "https://jkypuwbngeosadumlprq.supabase.co";
   const supabase = createClient(project_url, public_api_key);
 
+  let is_refreshing = false;
   let last_refreshed: Date | null = null;
 
   async function refresh(station: string) {
@@ -18,10 +19,16 @@
       },
       body: station,
     };
+    console.log("sending refresh request...");
     const { data, error } = await supabase.functions.invoke(
       "refresh-index",
       request
     );
+    console.log("refresh edge function stopped...");
+    if (error) {
+      console.error(error);
+    }
+    console.log(data);
   }
 
   interface UpcomingTrain {
@@ -37,6 +44,7 @@
   let upcoming_trains: UpcomingTrain[] = [];
 
   async function fetch(name: string) {
+    console.log("called fetch...");
     let begin = supabase
       .from("realtime")
       .select(
@@ -62,10 +70,14 @@
     last_refreshed = new Date();
   }
 
+  poll();
   // TODO: Use supabase's realtime thing to listen for changes an only poll when changes exist.
   setInterval(async () => {
     await poll();
   }, 30000);
+  setInterval(async () => {
+    await fetch(station);
+  }, 1000);
 
   interface Station {
     station: string;
@@ -105,6 +117,33 @@
       }
     }
 
+    const expected_order = [
+      "NEWARK",
+      "HARRISON",
+      "JOURNAL_SQUARE",
+      "GROVE_STREET",
+      "EXCHANGE_PLACE",
+      "WORLD_TRADE_CENTER",
+      "NEWPORT",
+      "HOBOKEN",
+      "CHRISTOPHER_STREET",
+      "NINTH_STREET",
+      "FOURTEENTH_STREET",
+      "TWENTY_THIRD_STREET",
+      "THIRTY_THIRD_STREET",
+    ];
+
+    out_stations.sort(function (x, y) {
+      if (
+        expected_order.indexOf(x.station) < expected_order.indexOf(y.station)
+      ) {
+        return -1;
+      } else {
+        // Stations are guaranteed to be unique.
+        return 1;
+      }
+    });
+
     stations = out_stations;
   }
 
@@ -136,7 +175,13 @@
   function prettify_eta(date: Date) {
     let time_in_minutes = (date.getTime() - time.getTime()) / (1000 * 60);
 
-    return Math.round(Math.max(time_in_minutes, 0)).toString() + "m";
+    return Math.round(Math.max(time_in_minutes, 1)).toString() + "m";
+  }
+
+  async function manual_refresh() {
+    is_refreshing = true;
+    await poll();
+    is_refreshing = false;
   }
 </script>
 
@@ -153,10 +198,53 @@
     })}
   </div>
   {#if last_refreshed !== null}
+    <div class="date refresh-row">
+      <div>
+        <span>last refreshed: </span>
+        {last_refreshed.toLocaleTimeString("en-us")}
+      </div>
+      <div class="manual-refresh" role="button" on:click={manual_refresh}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class={"feather feather-refresh-cw" +
+            (is_refreshing ? " spinner" : "")}
+          ><polyline points="23 4 23 10 17 10" /><polyline
+            points="1 20 1 14 7 14"
+          /><path
+            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+          /></svg
+        >
+        <span>refresh</span>
+      </div>
+    </div>
+  {:else}
     <div class="date">
-      <span>last refreshed: </span>
-
-      {last_refreshed.toLocaleTimeString("en-us")}
+      <!-- From feather icons: -->
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="feather feather-refresh-cw spinner"
+        ><polyline points="23 4 23 10 17 10" /><polyline
+          points="1 20 1 14 7 14"
+        /><path
+          d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+        /></svg
+      >
     </div>
   {/if}
   <div class="stations-grid">
@@ -225,6 +313,7 @@
     flex-direction: column;
     place-items: center;
     height: 100vh;
+    overflow-y: auto;
   }
 
   .stations-grid {
@@ -278,6 +367,42 @@
     background-color: #2d72d2;
     text-justify: center;
     text-wrap: nowrap;
+  }
+
+  .manual-refresh {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: 0.5s;
+    border: 2px solid transparent;
+    width: fit-content;
+    border-radius: 4px;
+    padding: 0.2rem;
+  }
+
+  .manual-refresh:hover {
+    border-color: white;
+  }
+
+  @keyframes rotation {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .spinner {
+    animation: rotation 0.5s infinite linear;
+  }
+
+  .refresh-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
   }
 
   @media (prefers-color-scheme: dark) {
