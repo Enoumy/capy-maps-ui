@@ -15,13 +15,12 @@ for all path stations. Here is the jq query with nicer, non-bash formatting:
 | .[]
 | select(.consideredStation=="GRV")
 | .destinations
-| map(
-     {(.label|tostring) : .})
-	 | add
-	 | map_values(
-	      .messages
-		  | map({target : .target, eta: .arrivalTimeMessage})
-		  | group_by(.target)[]
-		  | {(.[0].target|tostring) : [.[] | .eta]})
+| map({(.label|tostring) : .})
+    | add
+    | map_values(
+        .messages
+        | map({target : .target, eta: .arrivalTimeMessage})
+        | group_by(.target)[]
+        | {(.[0].target|tostring) : [.[] | .eta]})
 
 ```
